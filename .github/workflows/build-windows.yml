@@ -27,7 +27,7 @@ jobs:
         run: |
           choco install wixtoolset --no-progress --yes
           $wixTool = Get-ChildItem `
-            -Path "${env:ProgramFiles(x86)}\WiX Toolset*", "${env:ProgramFiles}\WiX Toolset*" `
+            -Path "${env:ProgramFiles(x86)}\WiX Toolset*", "${env:ProgramFiles}\WiX Toolset*", "${env:ChocolateyInstall}\lib\wixtoolset*\tools" `
             -Include candle.exe, wix.exe `
             -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $wixTool) {
