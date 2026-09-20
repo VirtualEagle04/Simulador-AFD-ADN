@@ -1,0 +1,20 @@
+# Compilacion y empaquetado local
+out/
+build/
+artifacts/
+*.class
+*.jar
+*.exe
+*.msi
+
+# IDEs
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.vscode/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
