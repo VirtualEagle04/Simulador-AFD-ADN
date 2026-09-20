@@ -1,31 +1,30 @@
 package afdpainter.model;
 
-import java.awt.geom.Point2D;
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
  * Representa una arista (transición) entre dos estados, con uno o
  * varios símbolos asociados.
  *
- * La forma visual es la que el usuario dibujó a mano (a lápiz), guardada
- * de forma RELATIVA para que la curva siga uniendo los dos estados aunque
- * el usuario los mueva después:
- *  - Si from != to: se guarda una lista de pares (t, offset) respecto a la
- *    línea base entre los centros de los dos estados (t = posición a lo
- *    largo de la línea, offset = distancia perpendicular en píxeles).
- *  - Si from == to (self-loop): se guarda una lista de puntos (dx,dy)
- *    relativos al centro del propio estado.
+ * La geometría se guarda como parámetros simples que se recalculan
+ * siempre con la posición ACTUAL de los estados (así la curva sigue
+ * uniendo los nodos aunque el usuario los mueva):
+ *  - from != to: "bow" = qué tanto se abomba el arco hacia un lado.
+ *    El LADO (arriba/abajo) se decide de forma canónica según el orden
+ *    de los estados en la lista, así A->B y B->A quedan en lados
+ *    opuestos y nunca se sobreponen.
+ *  - from == to (self-loop): ángulo hacia donde apunta el lazo y qué
+ *    tanto se abomba hacia afuera.
  */
 public class Transition {
     private final State from;
     private final State to;
     private final Set<Character> symbols = new LinkedHashSet<>();
 
-    private List<double[]> curveShape;   // pares {t, offset} para from != to
-    private List<Point2D> loopShape;     // puntos (dx,dy) para self-loop
+    private double bow = 34;
+    private double loopAngle = -Math.PI / 2; // hacia arriba por defecto
+    private double loopSize = 30;
 
     public Transition(State from, State to) {
         this.from = from;
@@ -34,19 +33,20 @@ public class Transition {
 
     public State getFrom() { return from; }
     public State getTo() { return to; }
+    public boolean isLoop() { return from == to; }
     public Set<Character> getSymbols() { return symbols; }
 
     public void addSymbol(char c) { symbols.add(c); }
-    public void removeSymbol(char c) { symbols.remove(c); }
     public boolean isEmpty() { return symbols.isEmpty(); }
 
-    public List<double[]> getCurveShape() { return curveShape; }
-    public void setCurveShape(List<double[]> curveShape) { this.curveShape = curveShape; }
-    public boolean hasCurveShape() { return curveShape != null && curveShape.size() >= 2; }
+    public double getBow() { return bow; }
+    public void setBow(double bow) { this.bow = bow; }
 
-    public List<Point2D> getLoopShape() { return loopShape; }
-    public void setLoopShape(List<Point2D> loopShape) { this.loopShape = loopShape; }
-    public boolean hasLoopShape() { return loopShape != null && loopShape.size() >= 2; }
+    public double getLoopAngle() { return loopAngle; }
+    public void setLoopAngle(double loopAngle) { this.loopAngle = loopAngle; }
+
+    public double getLoopSize() { return loopSize; }
+    public void setLoopSize(double loopSize) { this.loopSize = loopSize; }
 
     public String getLabel() {
         StringBuilder sb = new StringBuilder();

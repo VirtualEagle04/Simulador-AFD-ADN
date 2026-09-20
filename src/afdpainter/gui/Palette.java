@@ -18,4 +18,5 @@ public class Palette {
     public static final Color ACCEPT        = new Color(39, 174, 96);   // verde
     public static final Color REJECT        = new Color(192, 57, 43);   // rojo
     public static final Color SELECTED_HINT = new Color(214, 48, 122);  // rosa/magenta
+    public static final Color LABEL_BG      = new Color(255, 255, 255, 235);
 }

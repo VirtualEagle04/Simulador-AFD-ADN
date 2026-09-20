@@ -7,8 +7,8 @@ import java.util.Set;
 
 /**
  * Contenedor del AFD completo: estados, transiciones y alfabeto.
- * No usa ninguna librería externa de autómatas: toda la lógica
- * (determinismo, búsqueda de transición, etc.) está implementada aquí.
+ * No usa ninguna librería externa de autómatas: toda la lógica está
+ * implementada aquí.
  */
 public class Automaton {
     private final List<State> states = new ArrayList<>();
@@ -21,7 +21,7 @@ public class Automaton {
     public Set<Character> getAlphabet() { return alphabet; }
     public void setAlphabet(Set<Character> alphabet) { this.alphabet = alphabet; }
 
-    public String nextStateName() { return "S" + (nameCounter++); }
+    public String nextStateName() { return "q" + (nameCounter++); }
 
     public void addState(State s) { states.add(s); }
 
@@ -56,30 +56,12 @@ public class Automaton {
         return null;
     }
 
-    public Transition getOrCreateTransition(State from, State to) {
-        Transition t = getTransitionBetween(from, to);
-        if (t == null) {
-            t = new Transition(from, to);
-            transitions.add(t);
-        }
-        return t;
-    }
-
-    /** Determinismo: ¿el símbolo ya está usado en OTRA transición saliente de 'from'? */
-    public boolean isSymbolFree(State from, char symbol, Transition excluding) {
-        for (Transition t : transitions) {
-            if (t == excluding) continue;
-            if (t.getFrom() == from && t.getSymbols().contains(symbol)) return false;
-        }
-        return true;
-    }
-
-    /** Busca un estado bajo (x,y). extraTolerance se suma al radio propio de cada estado. */
-    public State findStateAt(int x, int y, double extraTolerance) {
+    /** Estado bajo (x,y), con un pequeño margen sobre su propio radio. */
+    public State findStateAt(double x, double y) {
         for (int i = states.size() - 1; i >= 0; i--) {
             State s = states.get(i);
             double d = Math.hypot(s.getX() - x, s.getY() - y);
-            if (d <= s.getRadius() + extraTolerance) return s;
+            if (d <= s.getRadius() * 1.15) return s;
         }
         return null;
     }

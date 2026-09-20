@@ -4,50 +4,44 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 
 /**
  * Panel "multimedia" para reproducir la simulación paso a paso:
- * inicio, retroceder, play/pausa, avanzar, detener, y velocidad.
+ * reiniciar, retroceder, play/pausa, siguiente, detener y velocidad.
  */
 public class PlaybackBar extends JPanel {
 
-    private final JButton btnStart = new JButton("|\u25C0\u25C0");
-    private final JButton btnStepBack = new JButton("\u25C0");
-    private final JButton btnPlayPause = new JButton("\u25B6");
-    private final JButton btnStepFwd = new JButton("\u25B6");
-    private final JButton btnStop = new JButton("\u25A0");
-    private final JSlider speedSlider = new JSlider(200, 2000, 800);
-    private final JLabel progressLabel = new JLabel("Sin simulación");
+    private final JButton btnRestart = new JButton("\u23EE Reiniciar");
+    private final JButton btnStepBack = new JButton("\u25C0 Atr\u00e1s");
+    private final JButton btnPlayPause = new JButton("\u25B6 Reproducir");
+    private final JButton btnStepFwd = new JButton("Siguiente \u25B6");
+    private final JButton btnStop = new JButton("\u23F9 Detener");
+    private final JSlider speedSlider = new JSlider(1, 10, 5);
 
     public PlaybackBar() {
-        setLayout(new FlowLayout(FlowLayout.LEFT, 8, 6));
-        add(new JLabel("Reproducción:"));
-        add(btnStart);
+        setLayout(new FlowLayout(FlowLayout.CENTER, 10, 8));
+        add(btnRestart);
         add(btnStepBack);
         add(btnPlayPause);
         add(btnStepFwd);
         add(btnStop);
-        add(new JLabel("  Velocidad:"));
-        speedSlider.setInverted(true);
-        speedSlider.setPreferredSize(new java.awt.Dimension(120, speedSlider.getPreferredSize().height));
+        add(new JLabel("   Velocidad:"));
+        speedSlider.setPreferredSize(new Dimension(140, speedSlider.getPreferredSize().height));
         add(speedSlider);
-        add(new JLabel("   "));
-        add(progressLabel);
         setControlsEnabled(false);
     }
 
-    public JButton getBtnStart() { return btnStart; }
+    public JButton getBtnRestart() { return btnRestart; }
     public JButton getBtnStepBack() { return btnStepBack; }
     public JButton getBtnPlayPause() { return btnPlayPause; }
     public JButton getBtnStepFwd() { return btnStepFwd; }
     public JButton getBtnStop() { return btnStop; }
     public JSlider getSpeedSlider() { return speedSlider; }
 
-    public void setProgressText(String html) { progressLabel.setText(html); }
-
     public void setControlsEnabled(boolean b) {
-        btnStart.setEnabled(b);
+        btnRestart.setEnabled(b);
         btnStepBack.setEnabled(b);
         btnPlayPause.setEnabled(b);
         btnStepFwd.setEnabled(b);
