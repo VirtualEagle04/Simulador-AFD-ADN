@@ -61,20 +61,16 @@ public class TransitionTablePanel extends JScrollPane {
         Object[][] data = new Object[rowStates.size()][columnNames.length];
         for (int row = 0; row < rowStates.size(); row++) {
             State s = rowStates.get(row);
-            String prefix = (s.isInitial() ? "\u2192" : "") + (s.isFinalState() ? "*" : "");
-            data[row][0] = prefix + s.getName();
+            data[row][0] = Labels.stateCellHtml(s.getName(), s.isInitial(), s.isFinalState());
             for (int col = 0; col < colSymbols.size(); col++) {
                 char symbol = colSymbols.get(col);
                 List<Transition> ts = automaton.getTransitions(s, symbol);
                 if (ts.isEmpty()) {
                     data[row][col + 1] = "-";
                 } else {
-                    StringBuilder sb = new StringBuilder();
-                    for (Transition t : ts) {
-                        if (sb.length() > 0) sb.append(',');
-                        sb.append(t.getTo().getName());
-                    }
-                    data[row][col + 1] = sb.toString();
+                    List<String> names = new ArrayList<>();
+                    for (Transition t : ts) names.add(t.getTo().getName());
+                    data[row][col + 1] = Labels.nameListHtml(names);
                 }
             }
         }

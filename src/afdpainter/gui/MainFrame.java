@@ -34,6 +34,8 @@ public class MainFrame extends JFrame {
     private final ToolBar toolBar = new ToolBar();
     private final PlaybackBar playbackBar = new PlaybackBar();
     private final TransitionTablePanel tablePanel = new TransitionTablePanel();
+    /** Solo distinto de null cuando esta ventana muestra el resultado de una conversión AFN -> AFD. */
+    private final NfaToDfaConverter.ConversionResult conversionInfo;
 
     private final JTextField alphabetField = new JTextField();
     private final JTextField stringField = new JTextField();
@@ -47,14 +49,24 @@ public class MainFrame extends JFrame {
     private Timer timer;
 
     public MainFrame() {
-        this(new Automaton(), "Editor y Simulador de AFD / AFN");
+        this(new Automaton(), "Editor y Simulador de AFD / AFN", null);
     }
 
-    /** Permite abrir la ventana con un autómata ya cargado (por ejemplo, el resultado de una conversión AFN -> AFD). */
+    /** Permite abrir la ventana con un autómata ya cargado. */
     public MainFrame(Automaton presetAutomaton, String title) {
+        this(presetAutomaton, title, null);
+    }
+
+    /**
+     * Abre la ventana mostrando el resultado de una conversión AFN -> AFD:
+     * además de la tabla renombrada (k0, k1, ...) muestra también la tabla
+     * "clásica" de subconjuntos en notación {q0,q1}.
+     */
+    public MainFrame(Automaton presetAutomaton, String title, NfaToDfaConverter.ConversionResult conversionInfo) {
         super(title);
         this.automaton = presetAutomaton;
         this.drawingPanel = new DrawingPanel(automaton);
+        this.conversionInfo = conversionInfo;
 
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(1350, 860);
@@ -107,7 +119,21 @@ public class MainFrame extends JFrame {
         panel.add(new JSeparator());
         panel.add(Box.createVerticalStrut(16));
 
-        panel.add(sectionTitle("Tabla de transiciones"));
+        if (conversionInfo != null) {
+            panel.add(sectionTitle("Tabla de subconjuntos (AFN original)"));
+            SubsetTablePanel subsetPanel = new SubsetTablePanel(
+                    automaton.getAlphabet(), conversionInfo.subsetOrder, conversionInfo.deltaByIndex);
+            subsetPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            panel.add(subsetPanel);
+
+            panel.add(Box.createVerticalStrut(16));
+            panel.add(new JSeparator());
+            panel.add(Box.createVerticalStrut(16));
+
+            panel.add(sectionTitle("Tabla de transiciones (AFD renombrado)"));
+        } else {
+            panel.add(sectionTitle("Tabla de transiciones"));
+        }
         tablePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(tablePanel);
 
@@ -218,8 +244,8 @@ public class MainFrame extends JFrame {
                     "Falta el alfabeto", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        Automaton dfa = NfaToDfaConverter.convert(automaton);
-        MainFrame resultFrame = new MainFrame(dfa, "AFD generado a partir del AFN (subconjuntos)");
+        NfaToDfaConverter.ConversionResult result = NfaToDfaConverter.convert(automaton);
+        MainFrame resultFrame = new MainFrame(result.dfa, "AFD generado a partir del AFN (subconjuntos)", result);
         resultFrame.setVisible(true);
     }
 

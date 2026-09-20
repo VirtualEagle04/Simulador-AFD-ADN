@@ -32,13 +32,32 @@ import java.util.Set;
  */
 public class NfaToDfaConverter {
 
-    public static Automaton convert(Automaton nfa) {
+    /**
+     * Resultado completo de la conversión: el AFD ya renombrado (k0, k1, ...),
+     * más la información cruda de la construcción de subconjuntos (para poder
+     * mostrar también la tabla "clásica" en notación {q0,q1}).
+     */
+    public static class ConversionResult {
+        public final Automaton dfa;
+        /** subsetOrder.get(i) = conjunto de estados del AFN que representa el estado ki del AFD. */
+        public final List<Set<State>> subsetOrder;
+        /** deltaByIndex.get(i).get(symbol) = índice (en subsetOrder) al que se llega desde i con symbol. */
+        public final List<Map<Character, Integer>> deltaByIndex;
+
+        ConversionResult(Automaton dfa, List<Set<State>> subsetOrder, List<Map<Character, Integer>> deltaByIndex) {
+            this.dfa = dfa;
+            this.subsetOrder = subsetOrder;
+            this.deltaByIndex = deltaByIndex;
+        }
+    }
+
+    public static ConversionResult convert(Automaton nfa) {
         Automaton dfa = new Automaton();
         dfa.setKind(Automaton.Kind.DFA);
         dfa.setAlphabet(new LinkedHashSet<>(nfa.getAlphabet()));
 
         State nfaInitial = nfa.getInitialState();
-        if (nfaInitial == null) return dfa;
+        if (nfaInitial == null) return new ConversionResult(dfa, new ArrayList<>(), new ArrayList<>());
 
         // ---------- Fase 1: descubrir subconjuntos y transiciones (por índice) ----------
         List<Set<State>> order = new ArrayList<>();
@@ -125,7 +144,7 @@ public class NfaToDfaConverter {
             }
         }
 
-        return dfa;
+        return new ConversionResult(dfa, order, deltaByIndex);
     }
 
     /** Centro (promedio) de las posiciones de los estados del AFN original, para ubicar el AFD cerca. */

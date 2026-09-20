@@ -37,6 +37,8 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Lienzo de dibujo LIBRE (a mano alzada, como un lápiz): el usuario
@@ -562,18 +564,16 @@ public class DrawingPanel extends JPanel {
         if (s.isFinalState()) {
             AffineTransform t2 = new AffineTransform();
             t2.translate(s.getX(), s.getY());
-            t2.scale(1.18, 1.18);
-            Shape enlarged = t2.createTransformedShape(localShape);
+            t2.scale(0.8, 0.8);
+            Shape inner = t2.createTransformedShape(localShape);
             g2.setColor(Palette.STATE_BORDER);
             g2.setStroke(new BasicStroke(2.0f));
-            g2.draw(enlarged);
+            g2.draw(inner);
         }
 
         g2.setColor(Palette.TEXT);
-        g2.setFont(g2.getFont().deriveFont(Font.BOLD, 15f));
-        FontMetrics fm = g2.getFontMetrics();
-        int tw = fm.stringWidth(s.getName());
-        g2.drawString(s.getName(), (float) (s.getX() - tw / 2.0), (float) (s.getY() + fm.getAscent() / 2.0 - 2));
+        Font nameFont = g2.getFont().deriveFont(Font.BOLD, 15f);
+        drawSubscriptLabel(g2, s.getName(), s.getX(), s.getY(), nameFont);
 
         if (s.isInitial()) {
             double startX = s.getX() - s.getRadius() - 46;
@@ -584,6 +584,42 @@ public class DrawingPanel extends JPanel {
             g2.draw(new Line2D.Double(startX, startY, border.getX(), border.getY()));
             drawFilledArrow(g2, border.getX(), border.getY(), border.getX() - startX, border.getY() - startY, Palette.STATE_BORDER);
         }
+    }
+
+    private static final Pattern TRAILING_DIGITS = Pattern.compile("^(.*?)(\\d+)$");
+
+    /**
+     * Dibuja un nombre de estado centrado en (cx, cy), con el número final
+     * en subíndice (más pequeño y desplazado hacia abajo), tal como se
+     * escribe en notación matemática (q0 -> q con 0 en subíndice). Si el
+     * nombre no termina en dígitos, se dibuja normal.
+     */
+    private void drawSubscriptLabel(Graphics2D g2, String name, double cx, double cy, Font mainFont) {
+        Matcher m = TRAILING_DIGITS.matcher(name);
+        FontMetrics fmMain = g2.getFontMetrics(mainFont);
+
+        if (!m.matches()) {
+            int tw = fmMain.stringWidth(name);
+            g2.setFont(mainFont);
+            g2.drawString(name, (float) (cx - tw / 2.0), (float) (cy + fmMain.getAscent() / 2.0 - 2));
+            return;
+        }
+
+        String prefix = m.group(1);
+        String digits = m.group(2);
+        Font subFont = mainFont.deriveFont(mainFont.getSize2D() * 0.68f);
+        FontMetrics fmSub = g2.getFontMetrics(subFont);
+
+        int prefixW = fmMain.stringWidth(prefix);
+        int digitsW = fmSub.stringWidth(digits);
+        double totalW = prefixW + digitsW;
+        double startX = cx - totalW / 2.0;
+        double baseY = cy + fmMain.getAscent() / 2.0 - 2;
+
+        g2.setFont(mainFont);
+        g2.drawString(prefix, (float) startX, (float) baseY);
+        g2.setFont(subFont);
+        g2.drawString(digits, (float) (startX + prefixW), (float) (baseY + fmSub.getAscent() * 0.28));
     }
 
     private void drawTransition(Graphics2D g2, Transition t) {
