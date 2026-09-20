@@ -1,5 +1,6 @@
 package afdpainter.model;
 
+import java.awt.Color;
 import java.awt.geom.GeneralPath;
 
 /**
@@ -15,9 +16,10 @@ public class State {
     private double radius = DEFAULT_RADIUS;
     private boolean initial;
     private boolean finalState;
+    private GeneralPath outline;
+    private Color strokeColor; // null = usar color por defecto de la paleta
 
     /** Trazo dibujado a mano, relativo al centro (x,y). Null = círculo por defecto. */
-    private GeneralPath outline;
 
     public State(String name, double x, double y) {
         this.name = name;
@@ -44,6 +46,9 @@ public class State {
     public GeneralPath getOutline() { return outline; }
     public void setOutline(GeneralPath outline) { this.outline = outline; }
     public boolean hasCustomOutline() { return outline != null; }
+    
+    public Color getStrokeColor() { return strokeColor; }
+    public void setStrokeColor(Color strokeColor) { this.strokeColor = strokeColor; }
 
     @Override
     public String toString() { return name; }

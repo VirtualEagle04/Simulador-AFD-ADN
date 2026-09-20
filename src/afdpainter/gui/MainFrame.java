@@ -49,7 +49,7 @@ public class MainFrame extends JFrame {
     private Timer timer;
 
     public MainFrame() {
-        this(new Automaton(), "Editor y Simulador de AFD / AFN", null);
+        this(new Automaton(), "Simulador de AFD y AFN", null);
     }
 
     /** Permite abrir la ventana con un autómata ya cargado. */
@@ -80,9 +80,16 @@ public class MainFrame extends JFrame {
         toolBar.setKindListener(this::onKindChanged);
         toolBar.setConvertListener(this::onConvertToDfa);
         toolBar.selectKind(automaton.getKind());
+        toolBar.setColorListener(drawingPanel::setDrawColor);
         add(toolBar, BorderLayout.NORTH);
 
-        add(new JScrollPane(drawingPanel), BorderLayout.CENTER);
+        JScrollPane canvasScroll = new JScrollPane(drawingPanel);
+        JPanel canvasWrapper = new JPanel(new BorderLayout());
+        canvasWrapper.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 0));
+        canvasWrapper.add(canvasScroll, BorderLayout.CENTER);
+
+        add(canvasWrapper, BorderLayout.CENTER);
+        
         add(buildSidebar(), BorderLayout.EAST);
         add(playbackBar, BorderLayout.SOUTH);
 
@@ -120,7 +127,7 @@ public class MainFrame extends JFrame {
         panel.add(Box.createVerticalStrut(16));
 
         if (conversionInfo != null) {
-            panel.add(sectionTitle("Tabla de subconjuntos (AFN original)"));
+            panel.add(sectionTitle("Tabla de subconjuntos (AFN)"));
             SubsetTablePanel subsetPanel = new SubsetTablePanel(
                     automaton.getAlphabet(), conversionInfo.subsetOrder, conversionInfo.deltaByIndex);
             subsetPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -130,7 +137,7 @@ public class MainFrame extends JFrame {
             panel.add(new JSeparator());
             panel.add(Box.createVerticalStrut(16));
 
-            panel.add(sectionTitle("Tabla de transiciones (AFD renombrado)"));
+            panel.add(sectionTitle("Tabla de transiciones (AFD)"));
         } else {
             panel.add(sectionTitle("Tabla de transiciones"));
         }

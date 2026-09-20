@@ -1,5 +1,6 @@
 package afdpainter.model;
 
+import java.awt.Color;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -25,6 +26,7 @@ public class Transition {
     private final State from;
     private final State to;
     private final Set<Character> symbols = new LinkedHashSet<>();
+    private Color color;
 
     private double bow = 34;
     private double loopAngle = -Math.PI / 2; // hacia arriba por defecto
@@ -52,6 +54,9 @@ public class Transition {
 
     public double getLoopSize() { return loopSize; }
     public void setLoopSize(double loopSize) { this.loopSize = loopSize; }
+    
+    public Color getColor() { return color; }
+    public void setColor(Color color) { this.color = color; }
 
     public String getLabel() {
         StringBuilder sb = new StringBuilder();

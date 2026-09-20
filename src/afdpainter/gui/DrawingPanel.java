@@ -11,6 +11,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.event.AncestorEvent;
+import javax.swing.event.AncestorListener;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -39,6 +41,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 
 /**
  * Lienzo de dibujo LIBRE (a mano alzada, como un lápiz): el usuario
@@ -70,6 +73,10 @@ public class DrawingPanel extends JPanel {
     private Color finishedColor;
 
     private final Deque<Runnable> undoStack = new ArrayDeque<>();
+    
+    private Color currentDrawColor = Palette.STATE_BORDER;
+    
+    public void setDrawColor(Color c) { this.currentDrawColor = c; }
 
     /** Notificada tras cualquier cambio en el modelo (estado/transición agregada, borrada, renombrada, etc). */
     private Runnable onChange;
@@ -261,6 +268,7 @@ public class DrawingPanel extends JPanel {
         s.setOutline(outline);
         s.setRadius(radius);
         if (automaton.getStates().isEmpty()) s.setInitial(true); // primer estado = inicial automático
+        s.setStrokeColor(currentDrawColor);
         automaton.addState(s);
         undoStack.push(() -> automaton.removeState(s));
         fireChange();
@@ -276,6 +284,17 @@ public class DrawingPanel extends JPanel {
                 + "<br>(separe con comas si son varios, ej: a,b)</html>");
         panel.add(label);
         JTextField field = new JTextField();
+        field.setColumns(24);
+        field.addAncestorListener(new AncestorListener() {
+            @Override
+            public void ancestorAdded(AncestorEvent event) {
+                field.requestFocusInWindow();
+            }
+            @Override
+            public void ancestorRemoved(AncestorEvent event) { }
+            @Override
+            public void ancestorMoved(AncestorEvent event) { }
+        });
         panel.add(field);
         JCheckBox epsilonBox = null;
         if (isNfa) {
@@ -364,6 +383,7 @@ public class DrawingPanel extends JPanel {
                 Transition t = new Transition(from, from);
                 t.setLoopAngle(angle);
                 t.setLoopSize(size);
+                t.setColor(currentDrawColor);
                 for (char c : symbols) t.addSymbol(c);
                 automaton.getTransitions().add(t);
                 undoStack.push(() -> automaton.getTransitions().remove(t));
@@ -391,6 +411,7 @@ public class DrawingPanel extends JPanel {
 
                 Transition t = new Transition(from, to);
                 t.setBow(bow);
+                t.setColor(currentDrawColor);
                 for (char c : symbols) t.addSymbol(c);
                 automaton.getTransitions().add(t);
                 undoStack.push(() -> automaton.getTransitions().remove(t));
@@ -548,6 +569,7 @@ public class DrawingPanel extends JPanel {
     }
 
     private void drawState(Graphics2D g2, State s) {
+        Color strokeColor = s.getStrokeColor() != null ? s.getStrokeColor() : Palette.STATE_BORDER;
         Shape localShape = s.hasCustomOutline()
                 ? s.getOutline()
                 : new Ellipse2D.Double(-s.getRadius(), -s.getRadius(), s.getRadius() * 2, s.getRadius() * 2);
@@ -556,7 +578,7 @@ public class DrawingPanel extends JPanel {
         g2.translate(s.getX(), s.getY());
         g2.setColor(fillColorFor(s));
         g2.fill(localShape);
-        g2.setColor(Palette.STATE_BORDER);
+        g2.setColor(strokeColor);
         g2.setStroke(new BasicStroke(2.2f));
         g2.draw(localShape);
         g2.setTransform(prev);
@@ -566,7 +588,7 @@ public class DrawingPanel extends JPanel {
             t2.translate(s.getX(), s.getY());
             t2.scale(0.8, 0.8);
             Shape inner = t2.createTransformedShape(localShape);
-            g2.setColor(Palette.STATE_BORDER);
+            g2.setColor(strokeColor);
             g2.setStroke(new BasicStroke(2.0f));
             g2.draw(inner);
         }
@@ -579,7 +601,7 @@ public class DrawingPanel extends JPanel {
             double startX = s.getX() - s.getRadius() - 46;
             double startY = s.getY();
             Point2D border = borderTowards(s, startX, startY);
-            g2.setColor(Palette.STATE_BORDER);
+            g2.setColor(strokeColor);
             g2.setStroke(new BasicStroke(2.2f));
             g2.draw(new Line2D.Double(startX, startY, border.getX(), border.getY()));
             drawFilledArrow(g2, border.getX(), border.getY(), border.getX() - startX, border.getY() - startY, Palette.STATE_BORDER);
@@ -624,7 +646,8 @@ public class DrawingPanel extends JPanel {
 
     private void drawTransition(Graphics2D g2, Transition t) {
         boolean active = activeEdges.contains(t);
-        Color color = active ? Palette.ACTIVE_EDGE : Palette.TRANSITION;
+        Color base = t.getColor() != null ? t.getColor() : Palette.TRANSITION;
+        Color color = active ? Palette.ACTIVE_EDGE : base;
         g2.setStroke(new BasicStroke(active ? 3.6f : 2.2f));
         g2.setColor(color);
 
