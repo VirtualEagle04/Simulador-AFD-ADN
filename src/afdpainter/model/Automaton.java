@@ -74,11 +74,12 @@ public class Automaton {
         return true;
     }
 
-    public State findStateAt(int x, int y, int radius) {
+    /** Busca un estado bajo (x,y). extraTolerance se suma al radio propio de cada estado. */
+    public State findStateAt(int x, int y, double extraTolerance) {
         for (int i = states.size() - 1; i >= 0; i--) {
             State s = states.get(i);
             double d = Math.hypot(s.getX() - x, s.getY() - y);
-            if (d <= radius) return s;
+            if (d <= s.getRadius() + extraTolerance) return s;
         }
         return null;
     }

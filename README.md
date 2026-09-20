@@ -25,18 +25,31 @@ java -cp out afdpainter.Main
 
 ## Cómo usarlo
 
+El lienzo es de **dibujo libre, a mano alzada** (como un lápiz): para crear
+estados y transiciones, **mantén el botón del mouse presionado mientras lo
+mueves** trazando la figura; el trazo real que dibujes es lo que queda en
+el autómata (no se colocan figuras preestablecidas de una librería).
+
 1. **Barra superior** (modos de edición, uno a la vez):
-   - **Mover**: arrastra los estados para acomodarlos en el lienzo.
-   - **+ Estado**: clic en el lienzo vacío para crear un nuevo estado
-     (se numeran automáticamente S0, S1, S2...). El primer estado creado
-     se marca como inicial automáticamente.
-   - **+ Transición**: clic sobre un estado origen y arrastra hasta el
-     estado destino (puede ser el mismo estado, para un self-loop).
-     Al soltar, se pide el/los símbolo(s) (ej: `0` o `0,1`).
+   - **Mover**: arrastra los estados ya creados para acomodarlos.
+   - **+ Estado**: presiona el botón y, sin soltarlo, traza un círculo/óvalo
+     a mano alzada en el lienzo vacío; al soltar, ese trazo se convierte en
+     el nuevo estado (con la forma que dibujaste). Si solo haces clic sin
+     trazar nada, se crea un círculo estándar en ese punto. Los estados se
+     numeran automáticamente S0, S1, S2... y el primero creado se marca
+     como inicial automáticamente.
+   - **+ Transición**: presiona sobre (o muy cerca de) un estado origen y,
+     sin soltar, dibuja a mano alzada la curva hasta el estado destino
+     (puede terminar en el mismo estado, para un self-loop); al soltar
+     sobre el destino, se pide el/los símbolo(s) (ej: `0` o `0,1`). La
+     curva dibujada se reajusta automáticamente si luego mueves los
+     estados. Un trazo casi sin movimiento (un clic rápido) genera una
+     curva automática suave como respaldo.
    - **Marcar Inicial**: clic sobre un estado para convertirlo en el
-     estado inicial (dibuja la flecha de entrada).
+     estado inicial (dibuja la flecha de entrada). Es una bandera, no
+     una figura, por lo que se activa con un clic.
    - **Alternar Final**: clic sobre un estado para activar/desactivar
-     el círculo doble de estado de aceptación.
+     el círculo doble de estado de aceptación (también una bandera).
    - **Eliminar**: clic sobre un estado o una transición para borrarla.
    - **Limpiar Todo**: borra el autómata completo.
 
