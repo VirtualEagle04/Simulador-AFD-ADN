@@ -1,119 +1,168 @@
 # Editor y Simulador de AFD (Java Swing)
+# Simulador de AFD y AFN
 
-Aplicación de escritorio en Java puro (Swing, sin librerías externas de
-autómatas) para **dibujar un AFD a mano alzada** (como con un lápiz),
-definir el alfabeto Σ, escribir una cadena, y **reproducir paso a paso**
-su evaluación sobre el autómata dibujado, resaltando estados y
-transiciones.
+Aplicación de escritorio hecha con Java Swing para **dibujar, editar y
+simular autómatas finitos** directamente sobre un lienzo. Permite trabajar
+con autómatas finitos deterministas (AFD) y no deterministas (AFN), observar
+su tabla de transición y reproducir la lectura de una cadena paso a paso.
+
+La aplicación no depende de JFLAP ni de otra biblioteca de autómatas: el
+modelo, la simulación y la conversión AFN → AFD están implementados en el
+proyecto.
+
+![Ejemplo de un AFD dibujado y su tabla de transiciones](.img/sc1.jpg)
+
+## Características
+
+- Dibujo libre de estados, transiciones y auto-transiciones.
+- Estados iniciales y finales, renombrado y movimiento de nodos.
+- Edición de color del trazo, deshacer y limpieza del autómata.
+- Modo AFD con validación de conflictos de determinismo.
+- Modo AFN con múltiples destinos para un símbolo y transiciones vacías
+  (`ε`).
+- Tabla de transiciones sincronizada con el autómata.
+- Simulación manual o automática con controles de reproducción y velocidad.
+- Resaltado del estado actual, las transiciones usadas y el resultado.
+- Conversión de AFN a AFD mediante construcción de subconjuntos y cierre
+  épsilon.
 
 ## Requisitos
-- JDK 11 o superior (probado con JDK 21).
 
-## Compilar
+- JDK 11 o superior.
+- Terminal con `javac` y `java` disponibles en el `PATH`.
+
+El proyecto actual se ejecuta correctamente con JDK 25. No necesita Maven,
+Gradle ni dependencias externas.
+
+## Compilar y ejecutar
+
+Los comandos se ejecutan desde la raíz del repositorio, donde están `README.md`
+y la carpeta `src/`.
+
+### Linux, macOS o Git Bash
 
 ```bash
-cd AFDPainter
+rm -rf out
+mkdir -p out
 javac -d out $(find src -name "*.java")
-```
-
-## Ejecutar
-
-```bash
 java -cp out afdpainter.Main
 ```
 
-(En Windows: `javac -d out src\afdpainter\*.java src\afdpainter\model\*.java src\afdpainter\sim\*.java src\afdpainter\gui\*.java` y luego `java -cp out afdpainter.Main`)
+### Windows PowerShell
 
-## Cómo usarlo
+```powershell
+Remove-Item -Recurse -Force out -ErrorAction SilentlyContinue
+New-Item -ItemType Directory out | Out-Null
+javac -d out (Get-ChildItem -Recurse -Filter *.java src).FullName
+java -cp out afdpainter.Main
+```
 
-El lienzo es de **dibujo libre, a mano alzada**: para crear estados y
-transiciones, **mantén el botón del mouse presionado mientras lo
-mueves** trazando la figura; el trazo real que dibujes es lo que queda
-en el autómata (no se colocan figuras preestablecidas de una librería).
+La ventana principal se titula **Simulador de AFD y AFN**.
 
-La interfaz está organizada así:
-- **Arriba**: barra de herramientas con los modos de edición.
-- **Centro**: el lienzo de dibujo.
-- **Derecha (sidebar)**: Alfabeto Σ, Cadena a validar, y el estado de la
-  simulación en curso (cadena, consumido, restante, estado actual y
-  resultado).
-- **Abajo**: controles multimedia de reproducción (Reiniciar, Atrás,
-  Reproducir/Pausar, Siguiente, Detener, Velocidad).
+## Flujo rápido
 
-1. **Barra superior** (modos de edición, uno a la vez):
-   - **Dibujar Estado**: presiona el botón y, sin soltarlo, traza un
-     círculo/blob a mano alzada; al soltar, ese trazo se convierte en el
-     nuevo estado (con la forma exacta que dibujaste). Se numeran
-     automáticamente S0, S1, S2... y **el primer estado creado se marca
-     como inicial automáticamente**.
-   - **Dibujar Transición**: presiona sobre un estado origen y, sin
-     soltar, dibuja la curva a mano hasta el estado destino (o de vuelta
-     al mismo estado para un self-loop); al soltar sobre el destino se
-     pide el/los símbolo(s) (ej. `a,b`). La curva se recalcula sola si
-     luego mueves los estados, y dos transiciones opuestas (A→B y B→A)
-     siempre quedan en lados opuestos del arco (nunca se sobreponen).
-   - **Marcar Inicial / Marcar Final**: clic sobre un estado (son
-     banderas, no figuras, por lo que se activan con un clic).
-   - **Mover**: arrastra un estado ya creado; sus transiciones lo siguen.
-   - **Borrar**: clic sobre un estado o una transición para eliminarla.
-   - **Deshacer**: revierte la última creación de estado/transición.
-   - **Limpiar Todo** / **Ayuda**: reinician el lienzo o muestran las
-     instrucciones dentro de la app.
-   - Doble clic sobre un estado para renombrarlo.
+1. Elige **AFD** o **AFN** en la barra superior. El modo AFD está seleccionado
+   inicialmente.
+2. En **Alfabeto Σ**, escribe símbolos separados por coma o espacios, por
+   ejemplo `0,1` o `a b c`, y pulsa **Guardar Alfabeto**.
+3. Selecciona **Dibujar Estado** y arrastra el mouse para dibujar cada estado.
+   El primer estado creado se marca como inicial automáticamente.
+4. Selecciona **Dibujar Transición**, arrastra desde el estado origen hasta el
+   destino y escribe sus símbolos, por ejemplo `a,b`. Para un auto-loop,
+   termina el trazo sobre el mismo estado.
+5. Usa **Marcar Inicial** o **Marcar Final** y haz clic sobre un estado cuando
+   necesites cambiar esas marcas.
+6. En **Cadena a validar**, escribe la cadena y pulsa
+   **Verificar / Cargar Cadena**.
+7. Controla la ejecución desde la barra inferior: **Reiniciar**, **Atrás**,
+   **Reproducir**, **Siguiente**, **Detener** y **Velocidad**.
 
-2. **Alfabeto Σ** (sidebar): escribe los símbolos separados por coma o
-   espacio (ej. `0,1` o `a b c`) y pulsa **Guardar Alfabeto**.
+Durante la simulación, el estado activo se muestra en naranja. Una cadena
+aceptada termina con el autómata en verde; una cadena rechazada o sin camino
+posible termina en rojo.
 
-3. **Determinismo**: al definir una transición, el sistema impide usar
-   un símbolo que ya sale de ese mismo estado hacia otro destino distinto.
+![AFN durante la simulación paso a paso](.img/rec2.gif)
 
-4. **Cadena** (sidebar): escribe la cadena y pulsa
-   **Verificar / Cargar Cadena**. Se valida que pertenezca a Σ y que
-   exista un estado inicial.
+## AFD y AFN
 
-5. **Reproducción** (panel inferior): Reiniciar (vuelve al paso 0),
-   Atrás / Siguiente (paso a paso), Reproducir/Pausar (automático según
-   la velocidad), Detener (cierra la simulación por completo). Durante
-   la reproducción, el estado activo se resalta en **naranja**; al
-   terminar, el autómata se pinta **verde** (aceptada) o **rojo**
-   (rechazada, o sin transición para algún símbolo).
+### AFD
 
-## Modo AFD / AFN (nuevo)
+En un AFD, para un estado y un símbolo determinados solo puede existir un
+destino. La aplicación avisa y evita crear una transición que rompa esa
+restricción. La tabla lateral muestra una única salida por celda cuando está
+definida.
 
-- Arriba a la izquierda hay un selector **AFD / AFN**. Cambiar de modo borra
-  el autómata dibujado (confirma antes de hacerlo).
-- En modo **AFN** no se exige determinismo (un mismo símbolo puede salir
-  de un estado hacia varios destinos), y al crear una transición aparece
-  una casilla para marcarla como **vacía (ε / epsilon)**.
-- Botón **Convertir AFN → AFD**: aplica construcción de subconjuntos
-  (con cierre épsilon) y abre el AFD equivalente en una ventana nueva;
-  cada estado del AFD se nombra con el subconjunto de estados del AFN
-  que representa, ej. `{q0,q1}`.
-- En ambos modos, el panel lateral muestra la **tabla de transiciones**
-  (δ). Al reproducir la simulación, la fila del/los estado(s) activo(s)
-  y la celda de la transición recién usada se resaltan con los mismos
-  colores que el lienzo (naranja en curso, verde aceptada, rojo
-  rechazada). En AFN el "estado actual" es en realidad un conjunto de
-  estados, y así se refleja tanto en el dibujo como en la tabla.
+### AFN
+
+En un AFN, un mismo símbolo puede llevar a varios estados. Al crear una
+transición aparece la opción **Transición vacía (ε / epsilon)**. Las
+transiciones ε no consumen caracteres de la cadena y se tienen en cuenta al
+calcular el cierre épsilon.
+
+![AFN con múltiples caminos y tabla de transiciones](.img/rec1.gif)
+
+### Convertir AFN → AFD
+
+1. Selecciona **AFN**, dibuja el autómata y define el alfabeto.
+2. Asegúrate de tener un estado inicial.
+3. Pulsa **Convertir AFN → AFD**.
+
+Se abre una ventana nueva con el AFD equivalente. La interfaz incluye la
+tabla de subconjuntos del AFN y la tabla de transiciones del AFD generado.
+
+![Conversión de un AFN a un AFD](.img/rec3.gif)
+
+## Controles de edición
+
+| Control | Función |
+| --- | --- |
+| **Dibujar Estado** | Crea un estado con el trazo realizado con el mouse. |
+| **Dibujar Transición** | Crea una transición entre dos estados y solicita sus símbolos. |
+| **Marcar Inicial** | Define el estado inicial; solo puede haber uno. |
+| **Marcar Final** | Activa o desactiva el estado final. |
+| **Mover** | Reubica un estado y ajusta sus transiciones. |
+| **Borrar** | Elimina un estado o una transición. |
+| **Color** | Cambia el color de los trazos nuevos. |
+| **Deshacer** | Revierte la última creación de estado o transición. |
+| **Limpiar Todo** | Borra el autómata después de pedir confirmación. |
+| **Ayuda** | Abre las instrucciones dentro de la aplicación. |
+
+También puedes hacer doble clic sobre un estado para cambiar su nombre.
 
 ## Estructura del proyecto
 
-```
+```text
 src/afdpainter/
-  Main.java                 -> punto de entrada
-  model/State.java          -> nodo del AFD (trazo dibujado a mano, radio, inicial/final)
-  model/Transition.java     -> arista con símbolo(s) y geometría (bow / ángulo y tamaño de lazo)
-  model/Automaton.java      -> estados + transiciones + alfabeto (lógica propia, sin librerías)
-  sim/Simulator.java        -> motor de simulación (propio, símbolo a símbolo, con conjuntos de estados para AFN)
-  sim/NfaToDfaConverter.java -> construcción de subconjuntos (AFN -> AFD)
-  gui/DrawingPanel.java     -> lienzo de dibujo a mano alzada + geometría de arcos/lazos + resaltado de simulación
-  gui/TransitionTablePanel.java -> tabla de transiciones (δ) sincronizada con la simulación
-  gui/ToolBar.java          -> barra de modos de edición + selector AFD/AFN + conversión
-  gui/PlaybackBar.java      -> controles "multimedia" de reproducción
-  gui/MainFrame.java        -> ventana principal: conecta lienzo, sidebar y reproducción
-  gui/Palette.java          -> colores (sin azul ni café, según lo solicitado)
+├── Main.java                         # Punto de entrada
+├── model/
+│   ├── Automaton.java                # Estados, transiciones, alfabeto y modo
+│   ├── State.java                    # Estado y geometría del trazo
+│   └── Transition.java               # Transiciones y geometría de arcos
+├── sim/
+│   ├── Simulator.java                # Simulación de AFD y AFN
+│   └── NfaToDfaConverter.java        # Construcción de subconjuntos
+└── gui/
+    ├── MainFrame.java                # Ventana principal y flujo de uso
+    ├── DrawingPanel.java             # Lienzo y edición con el mouse
+    ├── ToolBar.java                  # Modos de edición y conversión
+    ├── PlaybackBar.java              # Controles de simulación
+    ├── TransitionTablePanel.java     # Tabla δ
+    ├── SubsetTablePanel.java         # Tabla de subconjuntos
+    ├── Labels.java                   # Textos de la interfaz
+    └── Palette.java                  # Colores de la interfaz
 ```
 
-Toda la lógica de autómatas (determinismo, búsqueda de transiciones,
-simulación) está implementada desde cero en `model/` y `sim/`; no se usa
-ninguna librería externa de AFD/JFLAP/automatalib, etc.
+## Notas de uso
+
+- Cada símbolo del alfabeto debe tener exactamente un carácter. Las entradas
+  con tokens de varios caracteres se ignoran al guardar el alfabeto.
+- Antes de cargar una cadena debes guardar el alfabeto y tener un estado
+  inicial.
+- Cambiar entre AFD y AFN borra el autómata actual, pero la aplicación pide
+  confirmación antes de hacerlo.
+- El botón **Detener** termina la simulación activa; **Reiniciar** conserva la
+  cadena y vuelve al primer paso.
+
+## Licencia
+
+No se ha incluido un archivo de licencia en este repositorio.
