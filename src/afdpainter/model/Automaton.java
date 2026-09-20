@@ -1,25 +1,34 @@
 package afdpainter.model;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 /**
- * Contenedor del AFD completo: estados, transiciones y alfabeto.
- * No usa ninguna librería externa de autómatas: toda la lógica está
- * implementada aquí.
+ * Contenedor del autómata completo (AFD o AFN): estados, transiciones
+ * y alfabeto. No usa ninguna librería externa de autómatas: toda la
+ * lógica está implementada aquí.
  */
 public class Automaton {
+
+    /** Tipo de autómata que representa este contenedor. */
+    public enum Kind { DFA, NFA }
+
     private final List<State> states = new ArrayList<>();
     private final List<Transition> transitions = new ArrayList<>();
     private Set<Character> alphabet = new LinkedHashSet<>();
     private int nameCounter = 0;
+    private Kind kind = Kind.DFA;
 
     public List<State> getStates() { return states; }
     public List<Transition> getTransitions() { return transitions; }
     public Set<Character> getAlphabet() { return alphabet; }
     public void setAlphabet(Set<Character> alphabet) { this.alphabet = alphabet; }
+    public Kind getKind() { return kind; }
+    public void setKind(Kind kind) { this.kind = kind; }
 
     public String nextStateName() { return "q" + (nameCounter++); }
 
@@ -54,6 +63,38 @@ public class Automaton {
             if (t.getFrom() == from && t.getTo() == to) return t;
         }
         return null;
+    }
+
+    /**
+     * Todas las transiciones que salen de {@code from} con el símbolo dado.
+     * Para un AFD normalmente habrá a lo sumo una; para un AFN puede haber
+     * varias (no determinismo).
+     */
+    public List<Transition> getTransitions(State from, char symbol) {
+        List<Transition> result = new ArrayList<>();
+        for (Transition t : transitions) {
+            if (t.getFrom() == from && t.getSymbols().contains(symbol)) result.add(t);
+        }
+        return result;
+    }
+
+    /**
+     * Cierre épsilon de un conjunto de estados: el propio conjunto más todo
+     * estado alcanzable siguiendo únicamente transiciones épsilon. Para un
+     * AFD (sin transiciones épsilon) devuelve el mismo conjunto de entrada.
+     */
+    public Set<State> epsilonClosure(Set<State> from) {
+        Set<State> closure = new LinkedHashSet<>(from);
+        Deque<State> pending = new ArrayDeque<>(from);
+        while (!pending.isEmpty()) {
+            State s = pending.poll();
+            for (Transition t : transitions) {
+                if (t.getFrom() == s && t.getSymbols().contains(Transition.EPSILON)) {
+                    if (closure.add(t.getTo())) pending.add(t.getTo());
+                }
+            }
+        }
+        return closure;
     }
 
     /** Estado bajo (x,y), con un pequeño margen sobre su propio radio. */

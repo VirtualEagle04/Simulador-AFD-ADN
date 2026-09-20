@@ -3,6 +3,7 @@ package afdpainter.gui;
 import afdpainter.model.Automaton;
 import afdpainter.model.State;
 import afdpainter.model.Transition;
+import afdpainter.sim.NfaToDfaConverter;
 import afdpainter.sim.Simulator;
 
 import javax.swing.BorderFactory;
@@ -19,17 +20,20 @@ import javax.swing.JTextField;
 import javax.swing.Timer;
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class MainFrame extends JFrame {
 
-    private final Automaton automaton = new Automaton();
-    private final DrawingPanel drawingPanel = new DrawingPanel(automaton);
+    private final Automaton automaton;
+    private final DrawingPanel drawingPanel;
     private final ToolBar toolBar = new ToolBar();
     private final PlaybackBar playbackBar = new PlaybackBar();
+    private final TransitionTablePanel tablePanel = new TransitionTablePanel();
 
     private final JTextField alphabetField = new JTextField();
     private final JTextField stringField = new JTextField();
@@ -43,9 +47,17 @@ public class MainFrame extends JFrame {
     private Timer timer;
 
     public MainFrame() {
-        super("Editor y Simulador de AFD");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1250, 820);
+        this(new Automaton(), "Editor y Simulador de AFD / AFN");
+    }
+
+    /** Permite abrir la ventana con un autómata ya cargado (por ejemplo, el resultado de una conversión AFN -> AFD). */
+    public MainFrame(Automaton presetAutomaton, String title) {
+        super(title);
+        this.automaton = presetAutomaton;
+        this.drawingPanel = new DrawingPanel(automaton);
+
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setSize(1350, 860);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
@@ -53,13 +65,18 @@ public class MainFrame extends JFrame {
         toolBar.setClearListener(this::onClear);
         toolBar.setUndoListener(drawingPanel::undo);
         toolBar.setHelpListener(this::showHelp);
+        toolBar.setKindListener(this::onKindChanged);
+        toolBar.setConvertListener(this::onConvertToDfa);
+        toolBar.selectKind(automaton.getKind());
         add(toolBar, BorderLayout.NORTH);
 
         add(new JScrollPane(drawingPanel), BorderLayout.CENTER);
         add(buildSidebar(), BorderLayout.EAST);
         add(playbackBar, BorderLayout.SOUTH);
 
+        drawingPanel.setOnChangeListener(this::refreshTable);
         wirePlayback();
+        refreshTable();
     }
 
     // ---------------------------- Interfaz ----------------------------
@@ -68,7 +85,7 @@ public class MainFrame extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-        panel.setPreferredSize(new Dimension(290, 100));
+        panel.setPreferredSize(new Dimension(320, 100));
 
         panel.add(sectionTitle("Alfabeto \u03A3"));
         alphabetField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
@@ -85,6 +102,14 @@ public class MainFrame extends JFrame {
         panel.add(saveAlphabetBtn);
         currentAlphabetLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(currentAlphabetLabel);
+
+        panel.add(Box.createVerticalStrut(16));
+        panel.add(new JSeparator());
+        panel.add(Box.createVerticalStrut(16));
+
+        panel.add(sectionTitle("Tabla de transiciones"));
+        tablePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(tablePanel);
 
         panel.add(Box.createVerticalStrut(16));
         panel.add(new JSeparator());
@@ -124,17 +149,25 @@ public class MainFrame extends JFrame {
     }
 
     private void onClear() {
-        int opt = JOptionPane.showConfirmDialog(this, "\u00bfBorrar todo el autómata dibujado?",
+        int opt = JOptionPane.showConfirmDialog(this, "\u00bfBorrar todo el aut\u00f3mata dibujado?",
                 "Confirmar", JOptionPane.YES_NO_OPTION);
         if (opt == JOptionPane.YES_OPTION) {
             stopSimulation();
             automaton.clear();
             drawingPanel.repaint();
+            refreshTable();
         }
     }
 
     private void showHelp() {
         String msg = "C\u00d3MO USAR EL PROGRAMA\n\n"
+                + "0) Modo AFD / AFN: elige arriba a la izquierda si vas a dibujar un\n"
+                + "   Aut\u00f3mata Finito Determinista o uno No Determinista. En AFD el\n"
+                + "   programa impide dos transiciones iguales desde el mismo estado;\n"
+                + "   en AFN eso se permite y adem\u00e1s puedes marcar una transici\u00f3n como\n"
+                + "   vac\u00eda (\u03b5) con la casilla del di\u00e1logo. El bot\u00f3n 'Convertir AFN \u2192 AFD'\n"
+                + "   genera, por construcci\u00f3n de subconjuntos, el AFD equivalente en\n"
+                + "   una ventana nueva.\n\n"
                 + "1) Dibujar Estado: mantenga oprimido el mouse y dibuje libremente\n"
                 + "   un c\u00edrculo cerrado. Al soltar, se crea un estado (q0, q1, ..., qN).\n"
                 + "   El primer estado creado se marca autom\u00e1ticamente como inicial.\n"
@@ -148,8 +181,46 @@ public class MainFrame extends JFrame {
                 + "5) Borrar: haga clic sobre un estado o una flecha para eliminarla.\n\n"
                 + "6) Defina el Alfabeto y la Cadena en el panel derecho, presione\n"
                 + "   'Verificar / Cargar Cadena' y use el panel inferior para reproducir\n"
-                + "   la simulaci\u00f3n paso a paso.";
+                + "   la simulaci\u00f3n paso a paso. La tabla de transiciones se resalta\n"
+                + "   junto con el dibujo.";
         JOptionPane.showMessageDialog(this, msg, "Ayuda", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    // ---------------------------- Modo AFD / AFN ----------------------------
+
+    private void onKindChanged(Automaton.Kind kind) {
+        if (kind == automaton.getKind()) return;
+        if (!automaton.getStates().isEmpty()) {
+            int opt = JOptionPane.showConfirmDialog(this,
+                    "Cambiar de modo borra el aut\u00f3mata dibujado actualmente.\n\u00bfContinuar?",
+                    "Cambiar de modo", JOptionPane.YES_NO_OPTION);
+            if (opt != JOptionPane.YES_OPTION) {
+                toolBar.selectKind(automaton.getKind());
+                return;
+            }
+        }
+        stopSimulation();
+        automaton.clear();
+        automaton.setKind(kind);
+        drawingPanel.repaint();
+        refreshTable();
+    }
+
+    private void onConvertToDfa() {
+        if (automaton.getKind() != Automaton.Kind.NFA) return;
+        if (automaton.getInitialState() == null) {
+            JOptionPane.showMessageDialog(this, "El AFN debe tener un estado inicial.",
+                    "Falta estado inicial", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (automaton.getAlphabet().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Primero defina y guarde el alfabeto \u03A3.",
+                    "Falta el alfabeto", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        Automaton dfa = NfaToDfaConverter.convert(automaton);
+        MainFrame resultFrame = new MainFrame(dfa, "AFD generado a partir del AFN (subconjuntos)");
+        resultFrame.setVisible(true);
     }
 
     // ---------------------------- Alfabeto ----------------------------
@@ -169,6 +240,7 @@ public class MainFrame extends JFrame {
         }
         automaton.setAlphabet(alphabet);
         currentAlphabetLabel.setText("\u03A3 = " + formatSet(alphabet));
+        refreshTable();
         if (discarded.length() > 0) {
             JOptionPane.showMessageDialog(this,
                     "Se ignoraron s\u00edmbolos con m\u00e1s de 1 car\u00e1cter: " + discarded,
@@ -187,6 +259,10 @@ public class MainFrame extends JFrame {
         }
         sb.append(" }");
         return sb.toString();
+    }
+
+    private void refreshTable() {
+        tablePanel.refresh(automaton);
     }
 
     // ---------------------------- Simulación ----------------------------
@@ -220,9 +296,7 @@ public class MainFrame extends JFrame {
         stepIndex = 0;
         simulationActive = true;
         drawingPanel.setFinishedColor(null);
-        drawingPanel.setActiveEdge(null);
-        drawingPanel.setCurrentSimState(currentResult.path.get(0));
-        drawingPanel.repaint();
+        updateHighlightForStep();
         playbackBar.setControlsEnabled(true);
         updateStatusLabels();
     }
@@ -266,9 +340,7 @@ public class MainFrame extends JFrame {
         stopTimer();
         stepIndex = 0;
         drawingPanel.setFinishedColor(null);
-        drawingPanel.setActiveEdge(null);
-        drawingPanel.setCurrentSimState(currentResult.path.get(0));
-        drawingPanel.repaint();
+        updateHighlightForStep();
         updateStatusLabels();
     }
 
@@ -278,26 +350,17 @@ public class MainFrame extends JFrame {
         currentResult = null;
         stepIndex = 0;
         drawingPanel.clearSimulationHighlight();
+        tablePanel.clearHighlight();
         playbackBar.setControlsEnabled(false);
         updateStatusLabels();
     }
 
     private void stepForward() {
         if (!simulationActive || isFinished()) return;
-        State from = currentResult.path.get(stepIndex);
-        char symbol = currentResult.input.charAt(stepIndex);
-        Transition edge = automaton.findTransition(from, symbol);
-        drawingPanel.setActiveEdge(edge);
-
         stepIndex++;
-        State to = currentResult.path.get(stepIndex);
-        drawingPanel.setCurrentSimState(to);
-
-        if (isFinished()) {
-            applyVerdictColor();
-            stopTimer();
-        }
-        drawingPanel.repaint();
+        if (isFinished()) applyVerdictColor();
+        updateHighlightForStep();
+        if (isFinished()) stopTimer();
         updateStatusLabels();
     }
 
@@ -305,30 +368,51 @@ public class MainFrame extends JFrame {
         if (!simulationActive || stepIndex <= 0) return;
         drawingPanel.setFinishedColor(null);
         stepIndex--;
-        drawingPanel.setCurrentSimState(currentResult.path.get(stepIndex));
-        if (stepIndex > 0) {
-            State from = currentResult.path.get(stepIndex - 1);
-            char symbol = currentResult.input.charAt(stepIndex - 1);
-            drawingPanel.setActiveEdge(automaton.findTransition(from, symbol));
-        } else {
-            drawingPanel.setActiveEdge(null);
-        }
-        drawingPanel.repaint();
+        updateHighlightForStep();
         updateStatusLabels();
     }
 
     private void applyVerdictColor() {
+        Color c = null;
         switch (currentResult.verdict) {
             case ACCEPTED:
-                drawingPanel.setFinishedColor(Palette.ACCEPT);
+                c = Palette.ACCEPT;
                 break;
             case REJECTED:
             case STUCK:
-                drawingPanel.setFinishedColor(Palette.REJECT);
+                c = Palette.REJECT;
                 break;
             default:
                 break;
         }
+        drawingPanel.setFinishedColor(c);
+    }
+
+    /** Sincroniza el resaltado del lienzo y de la tabla de transiciones con el paso actual. */
+    private void updateHighlightForStep() {
+        Set<State> states = currentResult.path.get(stepIndex);
+        drawingPanel.setCurrentSimStates(states);
+
+        if (stepIndex > 0) {
+            Set<Transition> edges = currentResult.edgesUsed.get(stepIndex);
+            drawingPanel.setActiveEdges(edges);
+            Set<State> fromStates = currentResult.path.get(stepIndex - 1);
+            char symbol = currentResult.input.charAt(stepIndex - 1);
+            tablePanel.setCellHighlight(fromStates, symbol);
+        } else {
+            drawingPanel.setActiveEdges(Collections.emptySet());
+            tablePanel.setCellHighlight(Collections.emptySet(), null);
+        }
+
+        Color rowColor = Palette.CURRENT_STATE;
+        if (isFinished() && currentResult.verdict != null) {
+            if (currentResult.verdict == Simulator.Verdict.ACCEPTED) rowColor = Palette.ACCEPT;
+            else if (currentResult.verdict == Simulator.Verdict.REJECTED
+                    || currentResult.verdict == Simulator.Verdict.STUCK) rowColor = Palette.REJECT;
+        }
+        tablePanel.setRowHighlight(states, rowColor);
+
+        drawingPanel.repaint();
     }
 
     private void updateStatusLabels() {
@@ -338,14 +422,16 @@ public class MainFrame extends JFrame {
             resultLabel.setForeground(Palette.TEXT);
             return;
         }
-        State current = currentResult.path.get(stepIndex);
+        Set<State> currentStates = currentResult.path.get(stepIndex);
+        String currentNames = joinNames(currentStates);
         String input = currentResult.input;
         String consumed = input.substring(0, Math.min(stepIndex, input.length()));
         String remaining = stepIndex < input.length() ? input.substring(stepIndex) : "(consumida)";
+        String stateLabel = automaton.getKind() == Automaton.Kind.NFA ? "Estados activos" : "Estado actual";
         statusLabel.setText("<html>Cadena: <b>" + escapeHtml(input) + "</b><br>"
                 + "Consumido: <b>" + escapeHtml(consumed) + "</b><br>"
                 + "Restante: <b>" + escapeHtml(remaining) + "</b><br>"
-                + "Estado actual: <b>" + current.getName() + "</b></html>");
+                + stateLabel + ": <b>" + escapeHtml(currentNames) + "</b></html>");
 
         if (isFinished()) {
             switch (currentResult.verdict) {
@@ -368,6 +454,15 @@ public class MainFrame extends JFrame {
             resultLabel.setText("Simulando...");
             resultLabel.setForeground(Palette.CURRENT_STATE);
         }
+    }
+
+    private String joinNames(Set<State> states) {
+        StringBuilder sb = new StringBuilder();
+        for (State s : states) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(s.getName());
+        }
+        return sb.length() == 0 ? "-" : sb.toString();
     }
 
     private String escapeHtml(String s) {

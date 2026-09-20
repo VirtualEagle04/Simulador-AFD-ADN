@@ -4,8 +4,12 @@ import afdpainter.model.Automaton;
 import afdpainter.model.State;
 import afdpainter.model.Transition;
 
+import javax.swing.BoxLayout;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -29,8 +33,10 @@ import java.awt.geom.Point2D;
 import java.awt.geom.QuadCurve2D;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Lienzo de dibujo LIBRE (a mano alzada, como un lápiz): el usuario
@@ -57,11 +63,14 @@ public class DrawingPanel extends JPanel {
     private List<Point> stroke;
     private State hoverState;
 
-    private State currentSimState;
-    private Transition activeEdge;
+    private Set<State> currentSimStates = Collections.emptySet();
+    private Set<Transition> activeEdges = Collections.emptySet();
     private Color finishedColor;
 
     private final Deque<Runnable> undoStack = new ArrayDeque<>();
+
+    /** Notificada tras cualquier cambio en el modelo (estado/transición agregada, borrada, renombrada, etc). */
+    private Runnable onChange;
 
     public DrawingPanel(Automaton automaton) {
         this.automaton = automaton;
@@ -97,19 +106,32 @@ public class DrawingPanel extends JPanel {
     public void undo() {
         if (!undoStack.isEmpty()) {
             undoStack.pop().run();
+            fireChange();
             repaint();
         }
     }
 
     // ---------- Resaltado de simulación ----------
 
-    public void setCurrentSimState(State s) { this.currentSimState = s; }
-    public void setActiveEdge(Transition t) { this.activeEdge = t; }
+    public void setCurrentSimStates(Set<State> states) {
+        this.currentSimStates = states == null ? Collections.emptySet() : states;
+    }
+
+    public void setActiveEdges(Set<Transition> edges) {
+        this.activeEdges = edges == null ? Collections.emptySet() : edges;
+    }
+
     public void setFinishedColor(Color c) { this.finishedColor = c; }
 
+    public void setOnChangeListener(Runnable r) { this.onChange = r; }
+
+    private void fireChange() {
+        if (onChange != null) onChange.run();
+    }
+
     public void clearSimulationHighlight() {
-        currentSimState = null;
-        activeEdge = null;
+        currentSimStates = Collections.emptySet();
+        activeEdges = Collections.emptySet();
         finishedColor = null;
         repaint();
     }
@@ -128,6 +150,7 @@ public class DrawingPanel extends JPanel {
                 State s = automaton.findStateAt(x, y);
                 if (s != null) {
                     automaton.setInitialState(s);
+                    fireChange();
                     repaint();
                 }
                 break;
@@ -136,6 +159,7 @@ public class DrawingPanel extends JPanel {
                 State s = automaton.findStateAt(x, y);
                 if (s != null) {
                     s.setFinalState(!s.isFinalState());
+                    fireChange();
                     repaint();
                 }
                 break;
@@ -151,12 +175,14 @@ public class DrawingPanel extends JPanel {
                             "Confirmar", JOptionPane.YES_NO_OPTION);
                     if (r == JOptionPane.YES_OPTION) {
                         automaton.removeState(s);
+                        fireChange();
                         repaint();
                     }
                 } else {
                     Transition t = findTransitionNear(x, y);
                     if (t != null) {
                         automaton.removeTransition(t);
+                        fireChange();
                         repaint();
                     }
                 }
@@ -204,6 +230,7 @@ public class DrawingPanel extends JPanel {
         if (newName != null) {
             newName = newName.trim();
             if (!newName.isEmpty()) s.setName(newName);
+            fireChange();
             repaint();
         }
     }
@@ -234,15 +261,37 @@ public class DrawingPanel extends JPanel {
         if (automaton.getStates().isEmpty()) s.setInitial(true); // primer estado = inicial automático
         automaton.addState(s);
         undoStack.push(() -> automaton.removeState(s));
+        fireChange();
     }
 
     private List<Character> askSymbols(State from, State to) {
-        String prompt = "S\u00edmbolo(s) para la transici\u00f3n " + from.getName() + " \u2192 " + to.getName()
-                + (from == to ? " (auto-lazo)" : "")
-                + "\n(separe con comas si son varios, ej: a,b)";
-        String text = JOptionPane.showInputDialog(this, prompt, "Nueva transici\u00f3n", JOptionPane.QUESTION_MESSAGE);
-        if (text == null) return null;
+        boolean isNfa = automaton.getKind() == Automaton.Kind.NFA;
 
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        JLabel label = new JLabel("<html>S\u00edmbolo(s) para " + from.getName() + " \u2192 " + to.getName()
+                + (from == to ? " (auto-lazo)" : "")
+                + "<br>(separe con comas si son varios, ej: a,b)</html>");
+        panel.add(label);
+        JTextField field = new JTextField();
+        panel.add(field);
+        JCheckBox epsilonBox = null;
+        if (isNfa) {
+            epsilonBox = new JCheckBox("Transici\u00f3n vac\u00eda (\u03b5 / epsilon)");
+            panel.add(epsilonBox);
+        }
+
+        int opt = JOptionPane.showConfirmDialog(this, panel, "Nueva transici\u00f3n",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (opt != JOptionPane.OK_OPTION) return null;
+
+        if (epsilonBox != null && epsilonBox.isSelected()) {
+            List<Character> epsilonResult = new ArrayList<>();
+            epsilonResult.add(Transition.EPSILON);
+            return epsilonResult;
+        }
+
+        String text = field.getText();
         List<Character> result = new ArrayList<>();
         StringBuilder longs = new StringBuilder();
         StringBuilder conflicts = new StringBuilder();
@@ -251,11 +300,15 @@ public class DrawingPanel extends JPanel {
             if (tt.isEmpty()) continue;
             if (tt.length() != 1) { longs.append(tt).append(' '); continue; }
             char c = tt.charAt(0);
-            boolean conflict = false;
-            for (Transition t : automaton.getTransitions()) {
-                if (t.getFrom() == from && t.getTo() != to && t.getSymbols().contains(c)) { conflict = true; break; }
+            if (c == Transition.EPSILON) continue; // épsilon se marca con la casilla, no como texto
+
+            if (!isNfa) {
+                boolean conflict = false;
+                for (Transition t : automaton.getTransitions()) {
+                    if (t.getFrom() == from && t.getTo() != to && t.getSymbols().contains(c)) { conflict = true; break; }
+                }
+                if (conflict) { conflicts.append(c).append(' '); continue; }
             }
-            if (conflict) { conflicts.append(c).append(' '); continue; }
             if (!result.contains(c)) result.add(c);
         }
         if (longs.length() > 0) {
@@ -265,7 +318,7 @@ public class DrawingPanel extends JPanel {
         if (conflicts.length() > 0) {
             JOptionPane.showMessageDialog(this,
                     "Un AFD debe ser determinista: [" + conflicts + "] ya sale de " + from.getName()
-                            + " hacia otro estado distinto. Se ignoraron.",
+                            + " hacia otro estado distinto. Se ignoraron. (Cambia a modo AFN si necesitas esto).",
                     "Conflicto de determinismo", JOptionPane.WARNING_MESSAGE);
         }
         return result;
@@ -313,6 +366,7 @@ public class DrawingPanel extends JPanel {
                 automaton.getTransitions().add(t);
                 undoStack.push(() -> automaton.getTransitions().remove(t));
             }
+            fireChange();
         } else {
             Transition existing = automaton.getTransitionBetween(from, to);
             List<Character> symbols = askSymbols(from, to);
@@ -339,6 +393,7 @@ public class DrawingPanel extends JPanel {
                 automaton.getTransitions().add(t);
                 undoStack.push(() -> automaton.getTransitions().remove(t));
             }
+            fireChange();
         }
     }
 
@@ -485,8 +540,8 @@ public class DrawingPanel extends JPanel {
     }
 
     private Color fillColorFor(State s) {
-        if (finishedColor != null && s == currentSimState) return finishedColor;
-        if (s == currentSimState) return Palette.CURRENT_STATE;
+        if (finishedColor != null && currentSimStates.contains(s)) return finishedColor;
+        if (currentSimStates.contains(s)) return Palette.CURRENT_STATE;
         return Palette.STATE_FILL;
     }
 
@@ -532,7 +587,7 @@ public class DrawingPanel extends JPanel {
     }
 
     private void drawTransition(Graphics2D g2, Transition t) {
-        boolean active = t == activeEdge;
+        boolean active = activeEdges.contains(t);
         Color color = active ? Palette.ACTIVE_EDGE : Palette.TRANSITION;
         g2.setStroke(new BasicStroke(active ? 3.6f : 2.2f));
         g2.setColor(color);

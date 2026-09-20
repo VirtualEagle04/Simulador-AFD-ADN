@@ -78,6 +78,24 @@ La interfaz está organizada así:
    terminar, el autómata se pinta **verde** (aceptada) o **rojo**
    (rechazada, o sin transición para algún símbolo).
 
+## Modo AFD / AFN (nuevo)
+
+- Arriba a la izquierda hay un selector **AFD / AFN**. Cambiar de modo borra
+  el autómata dibujado (confirma antes de hacerlo).
+- En modo **AFN** no se exige determinismo (un mismo símbolo puede salir
+  de un estado hacia varios destinos), y al crear una transición aparece
+  una casilla para marcarla como **vacía (ε / epsilon)**.
+- Botón **Convertir AFN → AFD**: aplica construcción de subconjuntos
+  (con cierre épsilon) y abre el AFD equivalente en una ventana nueva;
+  cada estado del AFD se nombra con el subconjunto de estados del AFN
+  que representa, ej. `{q0,q1}`.
+- En ambos modos, el panel lateral muestra la **tabla de transiciones**
+  (δ). Al reproducir la simulación, la fila del/los estado(s) activo(s)
+  y la celda de la transición recién usada se resaltan con los mismos
+  colores que el lienzo (naranja en curso, verde aceptada, rojo
+  rechazada). En AFN el "estado actual" es en realidad un conjunto de
+  estados, y así se refleja tanto en el dibujo como en la tabla.
+
 ## Estructura del proyecto
 
 ```
@@ -86,9 +104,11 @@ src/afdpainter/
   model/State.java          -> nodo del AFD (trazo dibujado a mano, radio, inicial/final)
   model/Transition.java     -> arista con símbolo(s) y geometría (bow / ángulo y tamaño de lazo)
   model/Automaton.java      -> estados + transiciones + alfabeto (lógica propia, sin librerías)
-  sim/Simulator.java        -> motor de simulación (propio, símbolo a símbolo)
+  sim/Simulator.java        -> motor de simulación (propio, símbolo a símbolo, con conjuntos de estados para AFN)
+  sim/NfaToDfaConverter.java -> construcción de subconjuntos (AFN -> AFD)
   gui/DrawingPanel.java     -> lienzo de dibujo a mano alzada + geometría de arcos/lazos + resaltado de simulación
-  gui/ToolBar.java          -> barra de modos de edición (dibujar, marcar, mover, borrar, deshacer, ayuda)
+  gui/TransitionTablePanel.java -> tabla de transiciones (δ) sincronizada con la simulación
+  gui/ToolBar.java          -> barra de modos de edición + selector AFD/AFN + conversión
   gui/PlaybackBar.java      -> controles "multimedia" de reproducción
   gui/MainFrame.java        -> ventana principal: conecta lienzo, sidebar y reproducción
   gui/Palette.java          -> colores (sin azul ni café, según lo solicitado)

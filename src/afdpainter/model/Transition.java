@@ -18,6 +18,10 @@ import java.util.Set;
  *    tanto se abomba hacia afuera.
  */
 public class Transition {
+
+    /** Símbolo especial que representa una transición vacía (épsilon), usado solo en AFN. */
+    public static final char EPSILON = '\u03B5';
+
     private final State from;
     private final State to;
     private final Set<Character> symbols = new LinkedHashSet<>();
@@ -38,6 +42,7 @@ public class Transition {
 
     public void addSymbol(char c) { symbols.add(c); }
     public boolean isEmpty() { return symbols.isEmpty(); }
+    public boolean isEpsilonOnly() { return symbols.size() == 1 && symbols.contains(EPSILON); }
 
     public double getBow() { return bow; }
     public void setBow(double bow) { this.bow = bow; }
