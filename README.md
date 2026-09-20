@@ -57,6 +57,23 @@ javac -d out (Get-ChildItem -Recurse -Filter *.java src).FullName
 java -cp out afdpainter.Main
 ```
 
+## Generar ejecutables para Windows
+
+El workflow `.github/workflows/build-windows.yml` se ejecuta al hacer push a
+`main` o manualmente desde la pestaña **Actions** de GitHub. Compila el
+proyecto con JDK 21 y crea una **Release nueva** por cada ejecución exitosa.
+Las Releases usan tags automáticos como `build-1`, `build-2`, etc., y contienen
+dos archivos descargables:
+
+- `SimuladorAFDADN-portable-windows.zip`: aplicación portable que incluye su
+  propio `SimuladorAFDADN.exe` y no requiere instalar Java.
+- `SimuladorAFDADN-1.0.<n>.exe`: instalador de Windows con acceso directo y
+  entrada en el menú Inicio.
+
+Para ejecutarlo manualmente, entra en **Actions**, selecciona **Build Windows
+application** y pulsa **Run workflow**. Al terminar, la nueva Release aparecerá
+en la pestaña **Releases** del repositorio.
+
 La ventana principal se titula **Simulador de AFD y AFN**.
 
 ## Flujo rápido
