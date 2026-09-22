@@ -11,13 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Tabla "clásica" de la construcción de subconjuntos, tal como se enseña
- * en clase: filas y celdas muestran directamente los conjuntos de estados
- * del AFN original, en notación {q0,q1}, ANTES de renombrarlos a k0, k1, ...
- * (esa versión renombrada se muestra aparte, en {@link TransitionTablePanel}).
- * Es de solo lectura y no participa en el resaltado de la simulación.
- */
 public class SubsetTablePanel extends JScrollPane {
 
     public SubsetTablePanel(Set<Character> alphabet, List<Set<State>> order, List<Map<Character, Integer>> deltaByIndex) {

@@ -34,7 +34,6 @@ public class MainFrame extends JFrame {
     private final ToolBar toolBar = new ToolBar();
     private final PlaybackBar playbackBar = new PlaybackBar();
     private final TransitionTablePanel tablePanel = new TransitionTablePanel();
-    /** Solo distinto de null cuando esta ventana muestra el resultado de una conversión AFN -> AFD. */
     private final NfaToDfaConverter.ConversionResult conversionInfo;
 
     private final JTextField alphabetField = new JTextField();
@@ -52,16 +51,10 @@ public class MainFrame extends JFrame {
         this(new Automaton(), "Simulador de AFD y AFN", null);
     }
 
-    /** Permite abrir la ventana con un autómata ya cargado. */
     public MainFrame(Automaton presetAutomaton, String title) {
         this(presetAutomaton, title, null);
     }
 
-    /**
-     * Abre la ventana mostrando el resultado de una conversión AFN -> AFD:
-     * además de la tabla renombrada (k0, k1, ...) muestra también la tabla
-     * "clásica" de subconjuntos en notación {q0,q1}.
-     */
     public MainFrame(Automaton presetAutomaton, String title, NfaToDfaConverter.ConversionResult conversionInfo) {
         super(title);
         this.automaton = presetAutomaton;
@@ -97,8 +90,6 @@ public class MainFrame extends JFrame {
         wirePlayback();
         refreshTable();
     }
-
-    // ---------------------------- Interfaz ----------------------------
 
     private JPanel buildSidebar() {
         JPanel panel = new JPanel();
@@ -219,8 +210,6 @@ public class MainFrame extends JFrame {
         JOptionPane.showMessageDialog(this, msg, "Ayuda", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    // ---------------------------- Modo AFD / AFN ----------------------------
-
     private void onKindChanged(Automaton.Kind kind) {
         if (kind == automaton.getKind()) return;
         if (!automaton.getStates().isEmpty()) {
@@ -255,8 +244,6 @@ public class MainFrame extends JFrame {
         MainFrame resultFrame = new MainFrame(result.dfa, "AFD generado a partir del AFN (subconjuntos)", result);
         resultFrame.setVisible(true);
     }
-
-    // ---------------------------- Alfabeto ----------------------------
 
     private void saveAlphabet() {
         String text = alphabetField.getText();
@@ -297,8 +284,6 @@ public class MainFrame extends JFrame {
     private void refreshTable() {
         tablePanel.refresh(automaton);
     }
-
-    // ---------------------------- Simulación ----------------------------
 
     private void loadSimulation() {
         stopTimer();
@@ -421,7 +406,6 @@ public class MainFrame extends JFrame {
         drawingPanel.setFinishedColor(c);
     }
 
-    /** Sincroniza el resaltado del lienzo y de la tabla de transiciones con el paso actual. */
     private void updateHighlightForStep() {
         Set<State> states = currentResult.path.get(stepIndex);
         drawingPanel.setCurrentSimStates(states);

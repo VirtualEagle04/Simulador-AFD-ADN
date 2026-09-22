@@ -13,10 +13,6 @@ import java.awt.FlowLayout;
 import javax.swing.JColorChooser;
 import java.awt.Color;
 
-/**
- * Barra de herramientas con los modos de edición estilo "Paint" (dibujo
- * a mano alzada para estados/transiciones, clic para marcar/borrar).
- */
 public class ToolBar extends JPanel {
 
     public enum Mode { MOVE, ADD_STATE, ADD_TRANSITION, SET_INITIAL, TOGGLE_FINAL, DELETE }
@@ -101,7 +97,6 @@ public class ToolBar extends JPanel {
         add(help);
     }
 
-    /** Selecciona el toggle de modo (AFD/AFN) sin disparar el listener (uso programático). */
     public void selectKind(Automaton.Kind kind) {
         if (kind == Automaton.Kind.NFA) {
             nfaBtn.setSelected(true);

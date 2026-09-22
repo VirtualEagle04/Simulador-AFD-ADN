@@ -3,11 +3,6 @@ package afdpainter.model;
 import java.awt.Color;
 import java.awt.geom.GeneralPath;
 
-/**
- * Representa un estado (nodo) del AFD, dibujado a mano por el usuario.
- * El contorno (outline) es el trazo real que dibujó, relativo a su
- * centro (x,y); si es null, se dibuja como un círculo estándar.
- */
 public class State {
     public static final double DEFAULT_RADIUS = 34;
 
@@ -17,9 +12,7 @@ public class State {
     private boolean initial;
     private boolean finalState;
     private GeneralPath outline;
-    private Color strokeColor; // null = usar color por defecto de la paleta
-
-    /** Trazo dibujado a mano, relativo al centro (x,y). Null = círculo por defecto. */
+    private Color strokeColor;
 
     public State(String name, double x, double y) {
         this.name = name;

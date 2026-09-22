@@ -15,44 +15,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Construcción de subconjuntos ("subset construction"): convierte un AFN
- * (con o sin transiciones épsilon) en un AFD equivalente.
- *
- * Los estados del AFD resultante se nombran k0, k1, k2, ... siguiendo la
- * convención "de clase": primero los subconjuntos que coinciden con un
- * único estado del AFN original, en el mismo orden en que esos estados
- * fueron dibujados (q0, q1, q2, ...), y solo al final los subconjuntos
- * combinados (los que de verdad son producto del no-determinismo), en el
- * orden en que se descubrieron. Así k0..k(m-1) corresponden uno a uno con
- * q0..q(m-1) siempre que sean alcanzables, igual que en la construcción
- * hecha a mano en papel.
- *
- * El algoritmo se hace en tres fases: (1) se descubren todos los
- * subconjuntos alcanzables junto con sus transiciones, usando índices de
- * descubrimiento; (2) se renumeran esos índices según la convención
- * anterior; (3) ya con el total y el orden final conocidos, se ubican los
- * estados en un círculo alrededor del centro del AFN original y se crean
- * las transiciones reales. Ubicarlos en círculo evita que los nodos queden
- * amontonados, y seguir un orden con sentido (en vez de uno arbitrario)
- * ayuda a que los estados relacionados queden cerca, reduciendo el cruce
- * de flechas.
- *
- * Implementación propia, sin librerías externas de autómatas.
- */
 public class NfaToDfaConverter {
 
-    /**
-     * Resultado completo de la conversión: el AFD ya renombrado (k0, k1, ...),
-     * más la información cruda de la construcción de subconjuntos (para poder
-     * mostrar también la tabla "clásica" en notación {q0,q1}), ya en el mismo
-     * orden final que el AFD renombrado.
-     */
     public static class ConversionResult {
         public final Automaton dfa;
-        /** subsetOrder.get(i) = conjunto de estados del AFN que representa el estado ki del AFD. */
         public final List<Set<State>> subsetOrder;
-        /** deltaByIndex.get(i).get(symbol) = índice (en subsetOrder) al que se llega desde i con symbol. */
         public final List<Map<Character, Integer>> deltaByIndex;
 
         ConversionResult(Automaton dfa, List<Set<State>> subsetOrder, List<Map<Character, Integer>> deltaByIndex) {
@@ -69,8 +36,7 @@ public class NfaToDfaConverter {
 
         State nfaInitial = nfa.getInitialState();
         if (nfaInitial == null) return new ConversionResult(dfa, new ArrayList<>(), new ArrayList<>());
-
-        // ---------- Fase 1: descubrir subconjuntos y transiciones (por índice de descubrimiento) ----------
+        
         List<Set<State>> order = new ArrayList<>();
         Map<Set<State>, Integer> indexOf = new LinkedHashMap<>();
         List<Map<Character, Integer>> deltaByIndex = new ArrayList<>();
@@ -96,7 +62,7 @@ public class NfaToDfaConverter {
                     }
                 }
                 Set<State> closure = nfa.epsilonClosure(moved);
-                if (closure.isEmpty()) continue; // sin transición: no se crea "estado trampa"
+                if (closure.isEmpty()) continue;
 
                 Integer targetIdx = indexOf.get(closure);
                 if (targetIdx == null) {
@@ -113,11 +79,6 @@ public class NfaToDfaConverter {
 
         int n = order.size();
 
-        // ---------- Fase 2: renumerar según la convención "de papel" ----------
-        // Primero, cada subconjunto que sea EXACTAMENTE {q_i} para algún estado
-        // original q_i, en el mismo orden en que q_i fue dibujado. Luego, el
-        // resto de subconjuntos (los combinados) en el orden en que se
-        // descubrieron.
         int[] oldToNew = new int[n];
         Arrays.fill(oldToNew, -1);
         List<Integer> newToOld = new ArrayList<>();
@@ -153,11 +114,10 @@ public class NfaToDfaConverter {
         }
         int initialIdx = oldToNew[0];
 
-        // ---------- Fase 3: ubicar los estados y construir el AFD real ----------
         double[] center = centroidOf(nfa);
         double centerX = center[0], centerY = center[1];
 
-        double spacing = 130; // separación deseada entre estados vecinos en el círculo
+        double spacing = 130;
         double radius = (n <= 1) ? 0 : Math.max(110, (spacing * n) / (2 * Math.PI));
 
         State[] dfaStates = new State[n];
@@ -199,7 +159,6 @@ public class NfaToDfaConverter {
         return new ConversionResult(dfa, renumberedOrder, renumberedDelta);
     }
 
-    /** Centro (promedio) de las posiciones de los estados del AFN original, para ubicar el AFD cerca. */
     private static double[] centroidOf(Automaton nfa) {
         if (nfa.getStates().isEmpty()) return new double[]{320, 280};
         double sx = 0, sy = 0;

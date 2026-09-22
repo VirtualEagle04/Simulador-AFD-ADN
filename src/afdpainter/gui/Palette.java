@@ -2,10 +2,6 @@ package afdpainter.gui;
 
 import java.awt.Color;
 
-/**
- * Paleta de colores de la aplicación.
- * Restricción del usuario: NO usar azul ni café/marrón.
- */
 public class Palette {
     public static final Color CANVAS_BG     = new Color(248, 248, 245);
     public static final Color STATE_FILL    = Color.WHITE;
