@@ -42,23 +42,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
-/**
- * Lienzo de dibujo LIBRE (a mano alzada, como un lápiz): el usuario
- * mantiene el mouse presionado mientras lo mueve para trazar la figura
- * de un estado (un contorno cerrado) o de una transición (una curva
- * entre dos estados, o un lazo sobre el mismo estado).
- *
- * La geometría (arcos, self-loops, flechas rellenas, etiquetas) sigue
- * el mismo esquema de referencia: el lado del arco entre dos estados se
- * decide de forma canónica según el orden de los estados en la lista,
- * así A->B y B->A jamás quedan sobrepuestas; los self-loops usan el
- * ángulo/tamaño derivados del propio trazo dibujado.
- *
- * Marcar estado inicial/final y eliminar siguen siendo un clic (son
- * banderas, no figuras que tenga sentido "dibujar"). El primer estado
- * que se dibuja se marca automáticamente como inicial.
- */
 public class DrawingPanel extends JPanel {
 
     private final Automaton automaton;
@@ -78,7 +61,6 @@ public class DrawingPanel extends JPanel {
     
     public void setDrawColor(Color c) { this.currentDrawColor = c; }
 
-    /** Notificada tras cualquier cambio en el modelo (estado/transición agregada, borrada, renombrada, etc). */
     private Runnable onChange;
 
     public DrawingPanel(Automaton automaton) {
@@ -120,7 +102,6 @@ public class DrawingPanel extends JPanel {
         }
     }
 
-    // ---------- Resaltado de simulación ----------
 
     public void setCurrentSimStates(Set<State> states) {
         this.currentSimStates = states == null ? Collections.emptySet() : states;
@@ -144,8 +125,6 @@ public class DrawingPanel extends JPanel {
         finishedColor = null;
         repaint();
     }
-
-    // ---------------------------- Manejo de mouse ----------------------------
 
     private void handlePressed(MouseEvent e) {
         double x = e.getX(), y = e.getY();
@@ -243,8 +222,6 @@ public class DrawingPanel extends JPanel {
             repaint();
         }
     }
-
-    // ---------------------------- Creación a partir del trazo ----------------------------
 
     private void finalizeNewState(List<Point> pts) {
         if (pts.size() < 3) return;
@@ -420,8 +397,6 @@ public class DrawingPanel extends JPanel {
         }
     }
 
-    // ---------------------------- Geometría (arcos, lazos, hit-testing) ----------------------------
-
     private Point2D borderTowards(State e, double tx, double ty) {
         double dx = tx - e.getX(), dy = ty - e.getY();
         double d = Math.hypot(dx, dy);
@@ -429,11 +404,6 @@ public class DrawingPanel extends JPanel {
         return new Point2D.Double(e.getX() + dx / d * e.getRadius(), e.getY() + dy / d * e.getRadius());
     }
 
-    /**
-     * Punto de control del arco entre dos estados distintos. El orden
-     * canónico (según índice en la lista de estados) decide hacia qué
-     * lado se abomba, para que A->B y B->A queden en lados opuestos.
-     */
     private Point2D arcControlPoint(Transition t) {
         List<State> states = automaton.getStates();
         int iFrom = states.indexOf(t.getFrom());
@@ -518,8 +488,6 @@ public class DrawingPanel extends JPanel {
         }
         return best;
     }
-
-    // ---------------------------- Dibujo ----------------------------
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -610,12 +578,6 @@ public class DrawingPanel extends JPanel {
 
     private static final Pattern TRAILING_DIGITS = Pattern.compile("^(.*?)(\\d+)$");
 
-    /**
-     * Dibuja un nombre de estado centrado en (cx, cy), con el número final
-     * en subíndice (más pequeño y desplazado hacia abajo), tal como se
-     * escribe en notación matemática (q0 -> q con 0 en subíndice). Si el
-     * nombre no termina en dígitos, se dibuja normal.
-     */
     private void drawSubscriptLabel(Graphics2D g2, String name, double cx, double cy, Font mainFont) {
         Matcher m = TRAILING_DIGITS.matcher(name);
         FontMetrics fmMain = g2.getFontMetrics(mainFont);

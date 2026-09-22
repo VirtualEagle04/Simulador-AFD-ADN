@@ -7,10 +7,6 @@ import javax.swing.JSlider;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 
-/**
- * Panel "multimedia" para reproducir la simulación paso a paso:
- * reiniciar, retroceder, play/pausa, siguiente, detener y velocidad.
- */
 public class PlaybackBar extends JPanel {
 
     private final JButton btnRestart = new JButton("\u23EE Reiniciar");

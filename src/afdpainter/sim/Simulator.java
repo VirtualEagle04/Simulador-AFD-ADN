@@ -9,24 +9,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Motor de simulación (propio, sin librerías externas de autómatas).
- * Sirve tanto para AFD como para AFN: el "estado actual" en cada paso
- * es en realidad un CONJUNTO de estados (para un AFD ese conjunto
- * siempre tiene un único elemento, así que el comportamiento es el
- * mismo de siempre).
- */
 public class Simulator {
 
     public enum Verdict { ACCEPTED, REJECTED, STUCK, NO_INITIAL }
 
     public static class Result {
-        /** path.get(i) = conjunto de estados en que se está tras consumir los primeros i símbolos. */
         public final List<Set<State>> path = new ArrayList<>();
-        /** edgesUsed.get(i) = transiciones usadas para llegar a path.get(i) (vacío para i = 0). */
         public final List<Set<Transition>> edgesUsed = new ArrayList<>();
         public String input;
-        /** Índice del símbolo en el que no quedó ningún estado activo (-1 si no ocurrió). */
         public int stuckAtIndex = -1;
         public Verdict verdict;
     }

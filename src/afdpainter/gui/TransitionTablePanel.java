@@ -17,13 +17,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Tabla de transiciones (delta) del autómata actual: filas = estados,
- * columnas = símbolos del alfabeto (más épsilon en modo AFN). Cada celda
- * muestra el/los estado(s) destino. Durante la simulación, la fila del
- * estado activo y la celda de la transición recién usada se resaltan con
- * los mismos colores que el lienzo de dibujo.
- */
 public class TransitionTablePanel extends JScrollPane {
 
     private final JTable table;
@@ -43,7 +36,6 @@ public class TransitionTablePanel extends JScrollPane {
         setPreferredSize(new Dimension(260, 170));
     }
 
-    /** Reconstruye la tabla a partir del estado actual del autómata. */
     public void refresh(Automaton automaton) {
         rowStates = new ArrayList<>(automaton.getStates());
         colSymbols = new ArrayList<>(automaton.getAlphabet());
@@ -109,14 +101,12 @@ public class TransitionTablePanel extends JScrollPane {
         }
     }
 
-    /** Resalta (como en el lienzo) las filas de los estados activos actuales. */
     public void setRowHighlight(Set<State> states, Color color) {
         this.highlightedRows = states == null ? Collections.emptySet() : states;
         this.rowHighlightColor = color;
         table.repaint();
     }
 
-    /** Resalta la celda (estado origen, símbolo) de la transición recién usada. */
     public void setCellHighlight(Set<State> fromStates, Character symbol) {
         this.highlightedCellFrom = fromStates == null ? Collections.emptySet() : fromStates;
         this.highlightedSymbol = symbol;

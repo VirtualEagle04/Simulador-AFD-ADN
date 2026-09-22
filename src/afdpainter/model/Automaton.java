@@ -7,14 +7,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Contenedor del autómata completo (AFD o AFN): estados, transiciones
- * y alfabeto. No usa ninguna librería externa de autómatas: toda la
- * lógica está implementada aquí.
- */
 public class Automaton {
 
-    /** Tipo de autómata que representa este contenedor. */
     public enum Kind { DFA, NFA }
 
     private final List<State> states = new ArrayList<>();
@@ -65,11 +59,6 @@ public class Automaton {
         return null;
     }
 
-    /**
-     * Todas las transiciones que salen de {@code from} con el símbolo dado.
-     * Para un AFD normalmente habrá a lo sumo una; para un AFN puede haber
-     * varias (no determinismo).
-     */
     public List<Transition> getTransitions(State from, char symbol) {
         List<Transition> result = new ArrayList<>();
         for (Transition t : transitions) {
@@ -78,11 +67,6 @@ public class Automaton {
         return result;
     }
 
-    /**
-     * Cierre épsilon de un conjunto de estados: el propio conjunto más todo
-     * estado alcanzable siguiendo únicamente transiciones épsilon. Para un
-     * AFD (sin transiciones épsilon) devuelve el mismo conjunto de entrada.
-     */
     public Set<State> epsilonClosure(Set<State> from) {
         Set<State> closure = new LinkedHashSet<>(from);
         Deque<State> pending = new ArrayDeque<>(from);
@@ -97,7 +81,6 @@ public class Automaton {
         return closure;
     }
 
-    /** Estado bajo (x,y), con un pequeño margen sobre su propio radio. */
     public State findStateAt(double x, double y) {
         for (int i = states.size() - 1; i >= 0; i--) {
             State s = states.get(i);

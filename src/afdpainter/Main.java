@@ -10,7 +10,6 @@ public class Main {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception ignored) {
-            // Si falla, se usa el look and feel por defecto.
         }
         SwingUtilities.invokeLater(() -> {
             MainFrame frame = new MainFrame();
