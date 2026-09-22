@@ -26,14 +26,19 @@ jobs:
         shell: pwsh
         run: |
           choco install wixtoolset --no-progress --yes
-          $wixTool = Get-ChildItem `
-            -Path "${env:ProgramFiles(x86)}\WiX Toolset*", "${env:ProgramFiles}\WiX Toolset*" `
-            -Include candle.exe, wix.exe `
-            -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          $wixTool = Get-Command candle.exe, light.exe, wix.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $wixTool) {
+            $wixTool = Get-ChildItem `
+              -Path "${env:ProgramFiles(x86)}\WiX Toolset*", "${env:ProgramFiles}\WiX Toolset*", "${env:ChocolateyInstall}\lib\wixtoolset*", "${env:ChocolateyInstall}\bin" `
+              -File -Recurse -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -in @('candle.exe', 'light.exe', 'wix.exe') } |
+              Select-Object -First 1
+          }
           if (-not $wixTool) {
             throw 'WiX was installed but no WiX executable was found.'
           }
-          $wixTool.Directory.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $wixToolPath = if ($wixTool.Path) { $wixTool.Path } else { $wixTool.FullName }
+          (Split-Path -Path $wixToolPath -Parent) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Compile application
         shell: pwsh
